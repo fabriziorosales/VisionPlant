@@ -24,7 +24,7 @@ const Plants = () => {
     // Enviar la foto o manejarla como necesites.
     //console.log(imgSrc);
     try {
-      let resul = await axios.post('http://192.168.21.158:8000/', {image:imgSrc})
+      let resul = await axios.post('http://localhost:8000/', {image:imgSrc})
       console.log(resul);
     } catch (error) {
       console.log(error);
