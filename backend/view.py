@@ -1,28 +1,50 @@
 from django.shortcuts import render
 from django.http import HttpResponse
+from django.apps import apps
 import json
-import base64
-# from io import BytesIO
-# from PIL import Image
+import base64, numpy as np
+import cv2
+
+from django.http import JsonResponse
+import tensorflow as tf
+
 
 def upload_image(request):
     
     if request.method == 'POST':
-        data = request.POST.get('imagen')
+        data = request.body.decode('utf-8')
         if data:
+            # Obtener la instancia de ModelplantConfig y acceder al modelo cargado
+            model_instance = apps.get_app_config('modelPlant')
+            mdl_v1 = model_instance.model
+            
             # Eliminar el encabezado 'data:image/png;base64,' si está presente
-            # header, encoded = data.split(',', 1) if ',' in data else ('', data)
+            header, encoded = data.split(',', 1) if ',' in data else ('', data)
             
             # Decodificar la imagen base64
-            # image_data = base64.b64decode(encoded)
+            image_data = base64.b64decode(encoded)
             
-            # Cargar la imagen desde los datos
-            # image = Image.open(BytesIO(image_data))
+            # Convertir los datos de la imagen en un array numpy
+            image_array = np.frombuffer(image_data, dtype=np.uint8)
             
-            # response = HttpResponse(content_type="image/png")
-            # response = HttpResponse("BIENNNNNNNN")
-            return HttpResponse("BIENNNNNNNN")
+            # Decodificar la imagen utilizando OpenCV
+            image = cv2.imdecode(image_array, flags=cv2.IMREAD_COLOR)
+            
+            # Redimensionar la imagen al tamaño deseado
+            resized_image = cv2.resize(image, (150, 150))
+            
+            # Añadir una dimensión adicional para el tamaño del lote (batch size)
+            resized_image = np.expand_dims(resized_image, axis=0)
+            
+            # Asegurarse de que la imagen tenga 3 canales (RGB)
+            if len(resized_image.shape) == 2:
+                resized_image = cv2.cvtColor(resized_image, cv2.COLOR_GRAY2RGB)
+
+            prediction = mdl_v1.predict(resized_image)
+            
+        return HttpResponse(model_instance.labels[np.argmax(prediction)])
     else:
         # error
         return HttpResponse("¡Maaaaaaaaaaal!")
+    
     
