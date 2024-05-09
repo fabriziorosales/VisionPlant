@@ -30,8 +30,10 @@ def upload_image(request):
             # Decodificar la imagen utilizando OpenCV
             image = cv2.imdecode(image_array, flags=cv2.IMREAD_COLOR)
             
+            normalized_image = image / 255.0
+            
             # Redimensionar la imagen al tamaño deseado
-            resized_image = cv2.resize(image, (150, 150))
+            resized_image = cv2.resize(normalized_image, (150, 150))
             
             # Añadir una dimensión adicional para el tamaño del lote (batch size)
             resized_image = np.expand_dims(resized_image, axis=0)
@@ -42,7 +44,14 @@ def upload_image(request):
 
             prediction = mdl_v1.predict(resized_image)
             
-        return HttpResponse(model_instance.labels[np.argmax(prediction)])
+            if model_instance.labels[np.argmax(prediction)] != 'Leaf':
+                json = {'infeccion': True, 'enfermedad': model_instance.labels[np.argmax(prediction)]}
+            else:
+                json = {'infeccion': False}
+            
+            
+        return JsonResponse(json)
+        # return HttpResponse(normalized_image)
     else:
         # error
         return HttpResponse("¡Maaaaaaaaaaal!")
